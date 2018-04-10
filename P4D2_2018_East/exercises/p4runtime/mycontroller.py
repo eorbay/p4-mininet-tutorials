@@ -59,7 +59,17 @@ def writeTunnelRules(p4info_helper, ingress_sw, egress_sw, tunnel_id,
 
     # TODO build the transit rule
     # TODO install the transit rule on the ingress switch
-    print "TODO Install transit tunnel rule"
+    table_entry = p4info_helper.buildTableEntry(
+        table_name="MyIngress.myTunnel_exact",
+        match_fields={
+            "hdr.myTunnel.dst_id": tunnel_id
+        },
+        action_name="MyIngress.myTunnel_forward",
+        action_params={
+            "port": SWITCH_TO_SWITCH_PORT,
+        })
+    ingress_sw.WriteTableEntry(table_entry)
+    print "TODO Install transit tunnel rule on %s" % ingress_sw.name 
 
     # 3) Tunnel Egress Rule
     # For our simple topology, the host will always be located on the
@@ -92,7 +102,17 @@ def readTableRules(p4info_helper, sw):
             entry = entity.table_entry
             # TODO For extra credit, you can use the p4info_helper to translate
             #      the IDs the entry to names
-            print entry
+            table_name = p4info_helper.get_tables_name(entry.table_id);
+            print "table name: ", table_name
+            for match in entry.match:
+                print "match: ", p4info_helper.get_match_field_name(table_name, match.field_id)
+                print "match data:", p4info_helper.get_match_field_value(match) 
+            action = entry.action.action
+            action_name = p4info_helper.get_actions_name(action.action_id)
+            print "action: ", action_name
+            print "action params:"
+            for param in action.params:
+                print p4info_helper.get_action_param_name(action_name, param.param_id), param.value
             print '-----'
 
 def printCounter(p4info_helper, sw, counter_name, index):
@@ -145,8 +165,8 @@ def main(p4info_file_path, bmv2_file_path):
                      dst_eth_addr="00:00:00:00:01:01", dst_ip_addr="10.0.1.1")
 
     # TODO Uncomment the following two lines to read table entries from s1 and s2
-    #readTableRules(p4info_helper, s1)
-    #readTableRules(p4info_helper, s2)
+    readTableRules(p4info_helper, s1)
+    readTableRules(p4info_helper, s2)
 
     # Print the tunnel counters every 2 seconds
     try:
